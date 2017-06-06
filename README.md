@@ -1,4 +1,4 @@
-Gestión Criptográfica 0.91
+Gestión Criptográfica 0.92
 ================================
 
 Aplicación desarrollada en Java que permite encriptar y desencriptar ficheros de texto.
