@@ -15,7 +15,7 @@ Para acceder a las distintas opciones ocultas usaremos como datos de acceso el n
 del fichero de texto (cualquiera de ellos) alojado en la carpeta 'src/recursos' del proyecto,
 y como clave utilizaremos el contenido del mismo (lorem:ipsum y/o odei:riveiro).
 
-Para facilitar la puesta en marcha de la aplicación se proporciona un ejecutable '.jar' con el 
+Para facilitar la puesta en marcha de la aplicación se proporciona un ejecutable .jar con el 
 proyecto construido y listo para ser ejecutado de manera gráfica.
 
 ## Requisitos
