@@ -1,34 +1,39 @@
-Gestión Criptográfica 0.92
-================================
+# Gestión Criptográfica
 
-Aplicación desarrollada en Java que permite encriptar y desencriptar ficheros de texto.
-El programa nos habilita varias opciones para codificar o decodificar ficheros .txt.
-Tras autenticarnos en la aplicación mediante un usuario y contraseña, se nos mostrará
-una serie de opciones para poder realizar tales tareas.
+Aplicación de escritorio en Java (Swing) para cifrar y descifrar ficheros de texto usando el algoritmo Rijndael (AES).
 
-El programa hace uso de una interfaz gráfica y diferentes elementos multimedia, desde los
-cuales podremos elegir entre encriptar o desenciptar un fichero de texto introduciendo 
-la ruta del mismo, con lo que se nos generará una versión codificada del archivo que 
-podremos decodificar posteriormente.
+## Características
 
-Para acceder a las distintas opciones ocultas usaremos como datos de acceso el nombre 
-del fichero de texto (cualquiera de ellos) alojado en la carpeta 'src/recursos' del proyecto,
-y como clave utilizaremos el contenido del mismo (lorem:ipsum y/o odei:riveiro).
+- Autenticación simple: el "usuario" es el nombre de un fichero `.txt` en `src/recursos/` y la "contraseña" es su contenido (por ejemplo `lorem`/`ipsum` o `odei`/`riveiro`).
+- Generación de una clave privada (`SecretKey`) a partir del usuario y contraseña autenticados, usando `KeyGenerator` con el algoritmo Rijndael y una semilla derivada de esas credenciales.
+- Cifrado de un fichero `.txt` elegido por el usuario, generando una copia `nombre.cifrado.txt` en la misma carpeta.
+- Descifrado de un fichero previamente cifrado, generando una copia `nombre.descifrado.txt`; si la clave no coincide con la usada para cifrar, informa del error en lugar de generar un fichero corrupto.
+- Procesamiento de los ficheros por bloques de 1 KB mediante `Cipher.update`, cerrando el cifrado con `doFinal`.
+- Interfaz gráfica con mensajes de resultado (éxito/error) mediante `JOptionPane`.
 
-Para facilitar la puesta en marcha de la aplicación se proporciona un ejecutable .jar con el 
-proyecto construido y listo para ser ejecutado de manera gráfica.
+## Tecnologías
 
-## Requisitos
-- [Java] 7 o superior (para ejecutar la Aplicación)
+- Java (Swing / AWT para la interfaz gráfica)
+- `javax.crypto` (Cipher, KeyGenerator, SecretKey) y `java.security` (SecureRandom) para el cifrado Rijndael/ECB
+- Apache Ant + NetBeans (`build.xml`, estructura de proyecto NetBeans)
 
-## Entorno de desarrollo
-La aplicación ha sido desarrollada utilizando el IDE [NetBeans] pero también es posible su 
-importanción en [Eclipe] y demás IDE's.
+## Instalación / Cómo ejecutarlo
+
+**Opción rápida (ejecutable ya compilado):**
+```
+java -jar dist/Gestion_Criptografica.jar
+```
+
+**Compilando desde el código fuente:**
+1. Abre el proyecto con NetBeans (o cualquier IDE compatible con Ant), o compílalo con `ant` desde la raíz del proyecto usando el `build.xml` incluido.
+2. Ejecuta la clase `Controles` (contiene el `main`).
+3. Autentícate usando como usuario el nombre de uno de los ficheros de `src/recursos` (p. ej. `lorem`) y como contraseña su contenido (`ipsum`).
+4. Indica la ruta de un fichero `.txt` para cifrarlo o descifrarlo.
+
+Requiere Java 7 o superior.
+
+Ejercicio académico que practica el uso de la API criptográfica de Java (`javax.crypto`) para cifrar y descifrar ficheros con una clave simétrica.
 
 ## Licencia
-Esta aplicación se ofrece bajo licencia [GPL versión 3].
 
-[GPL versión 3]: https://www.gnu.org/licenses/gpl-3.0.en.html
-[NetBeans]: https://netbeans.org/
-[Eclipe]: https://eclipse.org/
-[Java]: https://www.java.com/
+GPL versión 3 (ver archivo [LICENSE](LICENSE)).
