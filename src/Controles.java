@@ -6,7 +6,11 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import javax.crypto.*;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.swing.JOptionPane;
 
 /**
@@ -55,13 +59,36 @@ public class Controles {
                 BufferedReader br = 
                     new BufferedReader(new FileReader(ruta + user + ".txt"));   // Obtenemos los datos contenidos dentro del fichero (donde se almancena la contraseña) y leemos su contenido
                 aux = br.readLine();
-                if (aux.equals(pass)) {                                         // Si el password recibido es igual al leido                                    
+                if (aux.equals(hashPassword(pass))) {                           // Si el hash del password recibido es igual al almacenado
                     aux = "ok";                                                 // marcamos como ok la conexión
                     clave = genKey(user, pass);                                 // e inicializamos la clave probada usada para des/encriptar los ficheros
+                } else {
+                    aux = "error";
                 }
             }
         } catch (IOException ex) { }
         return aux;                                                             // y devolvemos en forma de cadena el resultado
+    }
+
+    /**
+     * Método usado para calcular el hash SHA-256 de una contraseña, de forma
+     * que nunca se almacene ni compare en texto plano.
+     *
+     * @param pass String: contraseña en texto plano
+     * @return cadena hexadecimal con el hash SHA-256 de la contraseña
+     */
+    protected static String hashPassword(String pass) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(pass.getBytes("UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException | java.io.UnsupportedEncodingException ex) {
+            throw new RuntimeException(ex);
+        }
     }
       
     /**
@@ -74,14 +101,17 @@ public class Controles {
      * @return SecretKey: clave privada utilizada durante la des/encriptación
      */
     public static SecretKey genKey(String user, String pass) {
-        SecretKey claveAux = null;             
+        SecretKey claveAux = null;
         try {
-            KeyGenerator keyGen = KeyGenerator.getInstance("Rijndael");         // Creamos un objeto para generar la clave usando el algoritmo Rijndael
-            SecureRandom sr = new SecureRandom();
-            sr.setSeed((user + pass).getBytes());                               // Generamos semilla con los datos del Usuario
-            keyGen.init(128, sr);                                               // Indicamos el tamaño de la clave y la semilla a usar
-            claveAux = keyGen.generateKey();                                    // Genera la clave privada
-        } catch (NoSuchAlgorithmException ex) { }
+            byte[] sal = MessageDigest.getInstance("SHA-256")
+                    .digest(user.getBytes("UTF-8"));                           // Derivamos una sal fija a partir del Usuario (permite regenerar siempre la misma clave)
+            SecretKeyFactory factory =
+                    SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");      // Usamos PBKDF2 en vez de sembrar SecureRandom con la contraseña
+            PBEKeySpec spec = new PBEKeySpec(pass.toCharArray(), sal, 65536, 128); // 65536 iteraciones y clave de 128 bits
+            byte[] keyBytes = factory.generateSecret(spec).getEncoded();
+            claveAux = new SecretKeySpec(keyBytes, "AES");                     // Construimos la clave AES a partir de los bytes derivados
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException |
+                java.io.UnsupportedEncodingException ex) { }
         return claveAux;                                                        // Devolvemos la clave privada
     }
     
@@ -121,7 +151,8 @@ public class Controles {
                 JOptionPane.showMessageDialog(null, msj, " Información", tipo); // Mostramos mensaje con el resultado en una ventana de diálogo
             }  
         } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException |
-            IllegalBlockSizeException | BadPaddingException | InvalidKeyException e){}
+            IllegalBlockSizeException | BadPaddingException | InvalidKeyException |
+            InvalidAlgorithmParameterException e){}
         return aux;                                                             // Devolvemos la respuesta producida
     }   
 
@@ -135,18 +166,21 @@ public class Controles {
      * @param fich String: cadena con la URL del Fichero a encriptar
      */
     private static void cifrarFichero(String user, String pass, String fic)
-            throws IOException,NoSuchPaddingException,IllegalBlockSizeException, 
+            throws IOException,NoSuchPaddingException,IllegalBlockSizeException,
             NoSuchAlgorithmException,FileNotFoundException,InvalidKeyException,
-                                                           BadPaddingException {
+            BadPaddingException,InvalidAlgorithmParameterException {
         FileInputStream fe;                                                     // Fichero de entrada
         FileOutputStream fs;                                                    // Fichero de salida
-        Cipher cifrador = Cipher.getInstance("Rijndael/ECB/PKCS5Padding");      // Se Crea el objeto Cipher para cifrar, utilizando el algoritmo Rijndael
-        cifrador.init(Cipher.ENCRYPT_MODE, clave);                              // Se inicializa el cifrador en modo CIFRADO o ENCRIPTACIÓN  
+        Cipher cifrador = Cipher.getInstance("AES/CBC/PKCS5Padding");           // Se Crea el objeto Cipher para cifrar, utilizando AES en modo CBC
+        byte[] iv = new byte[16];
+        new SecureRandom().nextBytes(iv);                                       // Generamos un IV aleatorio distinto para cada fichero cifrado
+        cifrador.init(Cipher.ENCRYPT_MODE, clave, new IvParameterSpec(iv));     // Se inicializa el cifrador en modo CIFRADO o ENCRIPTACIÓN
         byte[] buffer = new byte[1000];
         byte[] bufferCifrado;
         fe = new FileInputStream(fic);                                          // Objeto que contiene el fichero de entrada
         fic = fic.substring(0, fic.length()-4);                                 // eliminamos la extensión del fichero
         fs = new FileOutputStream(fic + ".cifrado.txt");                        // y se la agregamos manualmente para evitar errores
+        fs.write(iv);                                                           // Guardamos el IV al principio del fichero cifrado (necesario para descifrar)
         int bytesLeidos = fe.read(buffer, 0, 1000);                             // Leemos el fichero de 1k en 1k y pasamos los fragmentos leidos al cifrador
         while (bytesLeidos != -1) {                                             // Mientras no se llegue al final del fichero
             bufferCifrado = cifrador.update(buffer, 0, bytesLeidos);            // se pasa eñ texto claro al cifrador y lo cifra, asignándolo a bufferCifrado
@@ -167,15 +201,18 @@ public class Controles {
      * @param fic String: cadena con la URL del Fichero a encriptar
      * @return res String: resultado obtenido tras descifrar el Fichero
      */
-    private static String descifrarFichero(String fic) 
+    private static String descifrarFichero(String fic)
             throws NoSuchPaddingException, NoSuchAlgorithmException,
-            FileNotFoundException, InvalidKeyException, IOException{
+            FileNotFoundException, InvalidKeyException, IOException,
+            InvalidAlgorithmParameterException {
         String res = "ok_1";
         FileInputStream fe;                                                     // Fichero de entrada
         FileOutputStream fs;                                                    // Fichero de salida
-        Cipher cifrador = Cipher.getInstance("Rijndael/ECB/PKCS5Padding");
-        cifrador.init(Cipher.DECRYPT_MODE, clave);                              // Ponemos cifrador en modo DESCIFRADO o DESENCRIPTACIÓN
+        Cipher cifrador = Cipher.getInstance("AES/CBC/PKCS5Padding");
         fe = new FileInputStream(fic);
+        byte[] iv = new byte[16];
+        fe.read(iv);                                                            // Leemos el IV almacenado al principio del fichero cifrado
+        cifrador.init(Cipher.DECRYPT_MODE, clave, new IvParameterSpec(iv));     // Ponemos cifrador en modo DESCIFRADO o DESENCRIPTACIÓN
         fs = new FileOutputStream(fic.substring(0,fic.length()-4)+".descifrado.txt");
         byte[] bufferClaro;
         byte[] buffer = new byte[1000];
