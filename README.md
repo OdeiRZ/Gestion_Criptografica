@@ -34,6 +34,10 @@ Requiere Java 7 o superior.
 
 Ejercicio académico que practica el uso de la API criptográfica de Java (`javax.crypto`) para cifrar y descifrar ficheros con una clave simétrica.
 
+## Seguridad
+
+Sustituido el cifrado Rijndael/ECB (ya no disponible en JDKs modernos, y débil por naturaleza) por AES/CBC con un IV aleatorio por fichero. La clave ya no se deriva directamente de usuario/contraseña en texto plano, sino mediante PBKDF2WithHmacSHA256, y las contraseñas almacenadas se comparan por hash SHA-256 en lugar de en texto plano.
+
 ## Licencia
 
 GPL versión 3 (ver archivo [LICENSE](LICENSE)).
