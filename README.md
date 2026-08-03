@@ -4,7 +4,7 @@ Aplicación de escritorio en Java (Swing) para cifrar y descifrar ficheros de te
 
 ## Características
 
-- Autenticación simple: el "usuario" es el nombre de un fichero `.txt` en `src/recursos/` y la "contraseña" es su contenido (por ejemplo `lorem`/`ipsum` o `odei`/`riveiro`).
+- Autenticación simple: el "usuario" es el nombre de un fichero `.txt` en `src/recursos/` y la "contraseña" es el hash SHA-256 de su contenido (por ejemplo `lorem`/`ipsum` o `odei`/`riveiro`).
 - Generación de una clave privada (`SecretKey`) a partir del usuario y contraseña autenticados, usando `KeyGenerator` con el algoritmo Rijndael y una semilla derivada de esas credenciales.
 - Cifrado de un fichero `.txt` elegido por el usuario, generando una copia `nombre.cifrado.txt` en la misma carpeta.
 - Descifrado de un fichero previamente cifrado, generando una copia `nombre.descifrado.txt`; si la clave no coincide con la usada para cifrar, informa del error en lugar de generar un fichero corrupto.
